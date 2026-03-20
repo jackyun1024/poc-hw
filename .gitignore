@@ -1,0 +1,4 @@
+.build/
+.swiftpm/
+.claude/skills/toss-pos-sales/scripts/toss-vision
+*.xlsx
