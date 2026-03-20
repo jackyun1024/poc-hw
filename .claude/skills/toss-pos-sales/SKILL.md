@@ -38,28 +38,75 @@ TV="${CLAUDE_SKILL_DIR}/scripts/toss-vision"
 - 스크린샷 추정 금지 — OCR 결과만 신뢰
 
 ### 날짜 입력 패턴 (WebView 입력란)
+
+⚠️ **이 패턴을 정확히 따라야 함. 순서를 바꾸거나 단계를 생략하면 100% 실패.**
+
+입력란은 년/월/일이 각각 분리된 서브필드임. Tab은 서브필드 간 이동.
+하지만 **숫자를 연속 타이핑(20250320)하면 자동으로 년→월→일이 채워짐**.
+
+#### 시작일 입력 (4단계)
 ```bash
-# 1. 시작일 입력란 클릭
+# Step A-1: 시작일 입력란 클릭
 toss-vision tap "년.월.일"
+sleep 0.3
 
-# 2. 전체선택 → 삭제 → 타이핑 → Enter로 확정
+# Step A-2: 기존 값 삭제
 osascript -e 'tell application "System Events" to keystroke "a" using command down'
+sleep 0.1
 osascript -e 'tell application "System Events" to key code 51'  # Delete
+sleep 0.2
+
+# Step A-3: 날짜 타이핑 (구분자 없이 숫자만! 예: 20250320)
 cliclick t:20250320
-osascript -e 'tell application "System Events" to key code 36'  # Enter (필수!)
+sleep 0.3
 
-# 3. 종료일로 이동: 시작일 "일" 부분 더블클릭 → Tab
-cliclick dc:{시작일_x+26},{시작일_y}
-osascript -e 'tell application "System Events" to key code 48'  # Tab
-
-# 4. 종료일 입력 → Enter
-osascript -e 'tell application "System Events" to keystroke "a" using command down'
-osascript -e 'tell application "System Events" to key code 51'
-cliclick t:20250919
-osascript -e 'tell application "System Events" to key code 36'  # Enter (필수!)
+# Step A-4: ★★★ Enter로 값 확정 ★★★
+osascript -e 'tell application "System Events" to key code 36'
+sleep 0.5
 ```
 
-**핵심**: 날짜 입력 후 반드시 **Enter**를 쳐야 값이 확정되고 "파일 만들기" 버튼이 활성화됨!
+#### 종료일 입력 (5단계)
+```bash
+# Step B-1: 시작일이 입력된 것을 toss-vision으로 확인
+toss-vision find "2025.03.20"  # found: true 확인 필수!
+
+# Step B-2: 시작일 텍스트의 끝부분(일 필드)을 더블클릭
+#   → toss-vision find로 얻은 좌표의 x+26 위치
+cliclick dc:{시작일_x+26},{시작일_y}
+sleep 0.2
+
+# Step B-3: Tab 키로 종료일 필드로 이동
+#   ⚠️ Tab이 서브필드(년→월→일) 단위로 이동할 수 있음
+#   ⚠️ 하지만 시작일 "일" 에서 Tab하면 종료일 "년"으로 감
+osascript -e 'tell application "System Events" to key code 48'
+sleep 0.3
+
+# Step B-4: 종료일 숫자 타이핑
+osascript -e 'tell application "System Events" to keystroke "a" using command down'
+sleep 0.1
+osascript -e 'tell application "System Events" to key code 51'  # Delete
+sleep 0.2
+cliclick t:20250919
+sleep 0.3
+
+# Step B-5: ★★★ Enter로 값 확정 ★★★
+osascript -e 'tell application "System Events" to key code 36'
+sleep 0.5
+```
+
+#### 입력 후 반드시 검증
+```bash
+# 두 날짜 모두 입력되었는지 확인
+toss-vision list | grep -E "2025.03.20|2025.09.19"
+# 두 줄 다 나와야 성공. 하나라도 없으면 처음부터 재시도.
+```
+
+**절대 하지 말 것:**
+- ❌ 날짜 입력 후 Enter 생략 → 파일 만들기 버튼이 반응 안 함
+- ❌ 종료일 입력란을 직접 클릭해서 이동 → 포커스 안 감
+- ❌ 구분자(`.`)를 포함해서 타이핑 → 포맷 깨짐
+- ❌ 검증 없이 다음 단계 진행 → 날짜가 잘못 들어간 채로 파일 생성
+- ❌ 시작일 Enter 확정 전에 종료일 이동 시도 → 실패
 
 ### PIN 입력
 - PIN 패드의 0 버튼 좌표: **(780, 580)** (윈도우 위치 135,25 기준)
