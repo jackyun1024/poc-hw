@@ -47,7 +47,16 @@ TV="${CLAUDE_SKILL_DIR}/scripts/toss-vision"
 #### 시작일 입력 (4단계)
 ```bash
 # Step A-1: 시작일 입력란 클릭
-toss-vision tap "년.월.일"
+#   ⚠️ toss-vision tap "년.월.일" 쓰지 말 것! 종료일의 "~ 년.월.일"을 잡을 수 있음
+#   → toss-vision find로 정확한 시작일 필드를 찾되, "~"가 없는 것을 선택
+#   → 또는 "조회 날짜" 텍스트 기준으로 아래쪽 첫 번째 입력란 좌표 계산
+#   → OCR에서 시작일 "년.월.일"이 안 잡히면, "~" 좌표의 왼쪽 70px 클릭
+TILDE=$( toss-vision find "~" --exact | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['x'],d['y'])" )
+TILDE_X=$(echo $TILDE | cut -d' ' -f1)
+TILDE_Y=$(echo $TILDE | cut -d' ' -f2)
+START_X=$((TILDE_X - 70))
+START_Y=$TILDE_Y
+cliclick c:$START_X,$START_Y
 sleep 0.3
 
 # Step A-2: 기존 값 삭제
@@ -102,6 +111,7 @@ toss-vision list | grep -E "2025.03.20|2025.09.19"
 ```
 
 **절대 하지 말 것:**
+- ❌ `toss-vision tap "년.월.일"` 사용 금지 → 종료일 `~ 년.월.일`을 잡음! "~" 좌표 기준으로 시작일 위치 계산할 것
 - ❌ 날짜 입력 후 Enter 생략 → 파일 만들기 버튼이 반응 안 함
 - ❌ 종료일 입력란을 직접 클릭해서 이동 → 포커스 안 감
 - ❌ 구분자(`.`)를 포함해서 타이핑 → 포맷 깨짐
