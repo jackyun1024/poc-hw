@@ -81,15 +81,17 @@ else:
     # x가 가장 작은 것 = 시작일 (왼쪽)
     start = min(candidates, key=lambda e: e['x'])
     left_x = start['x'] - start['w'] // 2
-    # 년 서브필드 = 왼쪽 끝 + 10px
-    print(f\"{left_x + 10} {start['y']} {start['x']}\")
+    # 년 서브필드 = 왼쪽 끝 + bbox 높이만큼 (폰트 크기 비례 오프셋)
+    offset = max(start['h'], 8)
+    print(f\"{left_x + offset} {start['y']} {start['x']} {start['w']}\")
 ")
 SF_YEAR_X=$(echo $START_FIELD | cut -d' ' -f1)
 SF_Y=$(echo $START_FIELD | cut -d' ' -f2)
 SF_CENTER_X=$(echo $START_FIELD | cut -d' ' -f3)
+SF_WIDTH=$(echo $START_FIELD | cut -d' ' -f4)
 
 [ "$SF_YEAR_X" != "0" ] || fail "시작일 입력란 못 찾음"
-log "   시작일 '년' 클릭 위치: ($SF_YEAR_X, $SF_Y) (center: $SF_CENTER_X)"
+log "   시작일 '년' 클릭 위치: ($SF_YEAR_X, $SF_Y) (center: $SF_CENTER_X, w: $SF_WIDTH)"
 
 ##############################
 # 4. 시작일 입력
@@ -121,8 +123,9 @@ read SX SY <<< $(get_xy "$FMT_START")
 [ "$SX" != "0" ] || fail "입력된 시작일 좌표 못 찾음"
 log "   시작일 위치: ($SX, $SY)"
 
-# "일" 부분 더블클릭 (시작일 center_x + 26)
-DC_X=$((SX + 26))
+# "일" 부분 더블클릭 — 입력된 시작일 bbox 오른쪽 끝 근처
+# SF_WIDTH = OCR bbox 너비, 오른쪽 끝 = center + width/2 - 5
+DC_X=$((SX + SF_WIDTH / 2 - 5))
 log "   더블클릭: ($DC_X, $SY) → Tab"
 $CC dc:$DC_X,$SY
 sleep 0.2
@@ -189,10 +192,11 @@ if zeros:
     z = max(zeros, key=lambda e: e['y'])
     print(f\"{z['x']} {z['y']}\")
 else:
-    print('780 580')
+    print('0 0')  # 못 찾으면 실패 처리
 ")
 ZX=$(echo $ZERO_POS | cut -d' ' -f1)
 ZY=$(echo $ZERO_POS | cut -d' ' -f2)
+[ "$ZX" != "0" ] || fail "PIN 패드에서 0 버튼 못 찾음"
 log "   0 버튼 위치: ($ZX, $ZY)"
 
 $CC c:$ZX,$ZY && sleep 0.3
